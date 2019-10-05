@@ -3,15 +3,67 @@
 
 <!-- HTML code using Vue.js components -->
 <div id="app">
-    {{ message }}
+    <h1>Welcome to the Magic Weather Predictor</h1>
+
+    Please enter the town you are seeking the forecast of:
+    
+    <br/>
+    <br/>
+
+    Town: <input v-model="town">
+
+    <br/>
+    <br/>
+
+    <button v-on:click="getWeatherForTown">Show me the weather!</button>
+
+    <br/>
+    <br/>
+
+    The forecast is: {{forecastJson}}
+
+    <span v-if="townSearchHistory.length>0">
+        <hr>
+        <h1>History of Towns Searched For</h1>
+        <ul>
+            <li v-for="town in townSearchHistory">{{town}}</li>
+        </ul>
+    </span>
 </div>
 
 <!-- Vue.js Components -->
 <script>
-    new Vue({
+    var app = new Vue({
         el: '#app',
         data: {
-            message: 'Hello Vue.js!'
+            town: '',
+            forecastJson: {},
+            townSearchHistory: []
+        },
+        methods: {
+            getRandom: getRandom,
+            getWeatherForTown: getWeatherForTown
         }
-    })
+    });
+
+    function getWeatherForTown(){
+        console.log(`Getting weather for town ${this.town}...`);
+
+        fetch(`http://localhost:3000/forecast/:town`)
+            .then(response => response.json())
+            .then(responseJSON => {
+                this.forecastJson = responseJSON.result;
+            })
+    }
+
+    function getRandom() {
+        console.log(`getRandom called`);
+
+        fetch(`http://localhost:3000/random/${this.randMin}/${this.randMax}`)
+            .then(response => response.json())
+            .then(responseJSON => {
+                this.random = responseJSON.result;
+                this.history.push(responseJSON.result);
+            })
+    }
 </script>
