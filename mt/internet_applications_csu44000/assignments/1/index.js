@@ -39,9 +39,45 @@ function getForecast(req, res) {
     let town = req.params.town;
     console.log(`Generating weather forecast for town ${town}...`);
 
+    forecastSummary = {};
+
     axios.get(`${apiURL}/forecast?q=${town}&APPID=${apiKEY}`)
         .then(response => {
-            console.log(response.data);
+            let weatherData = response.data.list;
+
+            // Loop over OpenWeather API response and extract data
+            for (weatherEntry in weatherData) {
+                let date = new Date(response.data.list[weatherEntry].dt * 1000);
+                date.setHours(0, 0, 0, 0);
+
+                // First check if there is a date entry for the given date
+                if (!forecastSummary[date]) {
+                    forecastSummary[date] = {
+                        temperatures: [],
+                        windSpeeds: [],
+                        rainfallLevels: []
+                    }
+                }
+
+                // Extract temperature and win data
+                forecastSummary[date].temperatures.push(weatherData[weatherEntry].main.temp);
+                forecastSummary[date].windSpeeds.push(weatherData[weatherEntry].wind.speed);
+
+                // Check if there is any rain
+                if (weatherData[weatherEntry].rain) {
+                    forecastSummary[date].rainfallLevels.push(weatherData[weatherEntry].rain['3h']);
+                }
+            }
+
+            // When finished extracting data, calculate averages
+            for(dateEntry in forecastSummary){
+                forecastSummary[dateEntry].averageTemp = getAverage(forecastSummary[dateEntry].temperatures);
+                forecastSummary[dateEntry].averageWind = getAverage(forecastSummary[dateEntry].windSpeeds);
+                forecastSummary[dateEntry].rainfallLevels = getSum(forecastSummary[dateEntry].rainfallLevels);
+                forecastSummary[dateEntry].temperatureRange = getMinMax(forecastSummary[dateEntry].temperatures)
+            }
+
+            console.log(forecastSummary);
 
             // Send good response with result
             res.status(200);
@@ -56,6 +92,47 @@ function getForecast(req, res) {
                 error: "Bad Request!"
             });
         })
+}
+
+// Returns the min and max of an array of values
+function getMinMax(array) {
+    var max = 0;
+    var min = array[0];
+
+    for (var i = 0; i < array.length; i++) {
+        if(array[i] >= max)
+            max = array[i];
+        else if(array[i] < min)
+            min = array[i];
+    }
+
+    return {
+        min: min,
+        max: max
+    };
+}
+
+// Returns the sum of an array of values
+function getSum(array) {
+    var total = 0;
+
+    for (var i = 0; i < array.length; i++) {
+        total += array[i];
+    }
+
+    return total;
+}
+
+// Returns the average value of an array of values
+function getAverage(array) {
+    var total = 0;
+
+    for (var i = 0; i < array.length; i++) {
+        total += array[i];
+    }
+    var avg = total / array.length;
+
+    return avg;
 }
 
 function sendRandom(req, res) {
