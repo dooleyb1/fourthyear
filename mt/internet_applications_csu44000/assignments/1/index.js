@@ -39,7 +39,7 @@ function getForecast(req, res) {
     let town = req.params.town;
     console.log(`Generating weather forecast for town ${town}...`);
 
-    axios.get(`${apiURL}/weather?q=Dublin,Ireland&APPID=${apiKEY}`)
+    axios.get(`${apiURL}/forecast?q=${town}&APPID=${apiKEY}`)
         .then(response => {
             console.log(response.data);
 

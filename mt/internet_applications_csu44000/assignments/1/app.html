@@ -6,29 +6,27 @@
     <h1>Welcome to the Magic Weather Predictor</h1>
 
     Please enter the town you are seeking the forecast of:
-    
-    <br/>
-    <br/>
+
+    <span v-if="isError">
+        <br />
+        <br />
+        <font color="red">{{errorMessage}}</font>
+    </span>
+
+    <br />
+    <br />
 
     Town: <input v-model="town">
 
-    <br/>
-    <br/>
+    <br />
+    <br />
 
     <button v-on:click="getWeatherForTown">Show me the weather!</button>
 
-    <br/>
-    <br/>
+    <br />
+    <br />
 
     The forecast is: {{forecastJson}}
-
-    <span v-if="townSearchHistory.length>0">
-        <hr>
-        <h1>History of Towns Searched For</h1>
-        <ul>
-            <li v-for="town in townSearchHistory">{{town}}</li>
-        </ul>
-    </span>
 </div>
 
 <!-- Vue.js Components -->
@@ -37,33 +35,41 @@
         el: '#app',
         data: {
             town: '',
+            isError: false,
+            errorMessage: '',
             forecastJson: {},
             townSearchHistory: []
         },
         methods: {
-            getRandom: getRandom,
             getWeatherForTown: getWeatherForTown
         }
     });
 
-    function getWeatherForTown(){
+    function getWeatherForTown() {
         console.log(`Getting weather for town ${this.town}...`);
 
-        fetch(`http://localhost:3000/forecast/:town`)
-            .then(response => response.json())
+        fetch(`http://localhost:3000/forecast/${this.town}`)
+            .then(response => {
+                // First check that there are no errors
+                if (!response.ok)
+                    throw Error(response.statusText);
+
+                // If all good, return the json
+                return response.json();
+            })
             .then(responseJSON => {
                 this.forecastJson = responseJSON.result;
-            })
-    }
 
-    function getRandom() {
-        console.log(`getRandom called`);
-
-        fetch(`http://localhost:3000/random/${this.randMin}/${this.randMax}`)
-            .then(response => response.json())
-            .then(responseJSON => {
-                this.random = responseJSON.result;
-                this.history.push(responseJSON.result);
+                // Reset any errors
+                this.isError = false;
+                this.errorMessage = '';
             })
+            .catch(error => {
+                console.error(error);
+
+                // Set error messages
+                this.isError = true;
+                this.errorMessage = `Unable to fetch weather data for ${this.town}`;
+            });
     }
 </script>
