@@ -29,8 +29,6 @@ app.use(cors());
 
 app.get('/', (req, res) => res.send('Hello World!'));
 
-app.get('/random/:min/:max', sendRandom);
-
 app.get('/forecast/:town', getForecast);
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
@@ -39,18 +37,23 @@ function getForecast(req, res) {
     let town = req.params.town;
     console.log(`Generating weather forecast for town ${town}...`);
 
-    forecastSummary = {};
+    let forecastSummary = {};
+    let isRain = false;
+    let forecastSentiment = null;
 
     axios.get(`${apiURL}/forecast?q=${town}&APPID=${apiKEY}`)
         .then(response => {
             let weatherData = response.data.list;
 
-            // Loop over OpenWeather API response and extract data
+            // Loop over OpenWeather API response and extract data for each day
             for (weatherEntry in weatherData) {
+
+                // Make the date look nicer for front-end
                 let date = new Date(response.data.list[weatherEntry].dt * 1000);
                 date.setHours(0, 0, 0, 0);
+                date = date.toLocaleDateString();
 
-                // First check if there is a date entry for the given date
+                // First check if there is a date entry for the given date, if not create one
                 if (!forecastSummary[date]) {
                     forecastSummary[date] = {
                         temperatures: [],
@@ -59,30 +62,38 @@ function getForecast(req, res) {
                     }
                 }
 
-                // Extract temperature and win data
+                // Extract temperature and wind speed data
                 forecastSummary[date].temperatures.push(weatherData[weatherEntry].main.temp);
                 forecastSummary[date].windSpeeds.push(weatherData[weatherEntry].wind.speed);
 
                 // Check if there is any rain
-                if (weatherData[weatherEntry].rain) {
+                if (weatherData[weatherEntry].rain && weatherData[weatherEntry].rain['3h']) {
+                    isRain = true;
                     forecastSummary[date].rainfallLevels.push(weatherData[weatherEntry].rain['3h']);
                 }
             }
 
             // When finished extracting data, calculate averages
-            for(dateEntry in forecastSummary){
-                forecastSummary[dateEntry].averageTemp = getAverage(forecastSummary[dateEntry].temperatures);
+            for (dateEntry in forecastSummary) {
+                forecastSummary[dateEntry].averageTemp = convertKelvinToCelsius(getAverage(forecastSummary[dateEntry].temperatures));
                 forecastSummary[dateEntry].averageWind = getAverage(forecastSummary[dateEntry].windSpeeds);
                 forecastSummary[dateEntry].rainfallLevels = getSum(forecastSummary[dateEntry].rainfallLevels);
-                forecastSummary[dateEntry].temperatureRange = getMinMax(forecastSummary[dateEntry].temperatures)
+                forecastSummary[dateEntry].temperatureRange = getMinMax(forecastSummary[dateEntry].temperatures);
             }
 
+            // Get overall temperature sentiment
+            temperatureSummary = getTemperatureSummary(forecastSummary);
+
             console.log(forecastSummary);
+            console.log(isRain);
+            console.log(forecastSentiment);
 
             // Send good response with result
             res.status(200);
             res.json({
-                result: response.data
+                forecastSummary: forecastSummary,
+                isRain: isRain,
+                temperatureSummary: temperatureSummary
             });
         })
         .catch(error => {
@@ -94,71 +105,97 @@ function getForecast(req, res) {
         })
 }
 
+// Returns a forecast sentiment (cold, warm, hot) and absolute min and max
+function getTemperatureSummary(forecastSummary) {
+    let max = 0;
+    let min = forecastSummary[Object.keys(forecastSummary)[0]].averageTemp;
+    let sentiment = null;
+
+    let minMaxObj = {};
+
+    // Loop over every day getting the absolute min and max values
+    for (dateEntry in forecastSummary) {
+        minMaxObj = forecastSummary[dateEntry].temperatureRange;
+
+        // Check if the max on this day is more than current max
+        if (minMaxObj.max >= max)
+            max = minMaxObj.max;
+
+        // Check if the min on this day is more than current max
+        if (minMaxObj.min <= min)
+            min = minMaxObj.min;
+    }
+
+    console.log(`Overall max is ${max}`);
+    console.log(`Overall min is ${min}`);
+
+    if(max >= 20.0)
+        sentiment = "hot";
+    
+    else if (max <= 20.0 && min >= 10.0)
+        sentiment = "warm";
+    
+    else
+        sentiment = "cold";
+
+    return {
+        sentiment: sentiment,
+        max: max,
+        min: min
+    }
+}
+
 // Returns the min and max of an array of values
 function getMinMax(array) {
-    var max = 0;
-    var min = array[0];
+    let max = 0;
+    let min = array[0];
 
-    for (var i = 0; i < array.length; i++) {
-        if(array[i] >= max)
+    for (let i = 0; i < array.length; i++) {
+        if (array[i] >= max)
             max = array[i];
-        else if(array[i] < min)
+        else if (array[i] < min)
             min = array[i];
     }
 
     return {
-        min: min,
-        max: max
+        min: convertKelvinToCelsius(min),
+        max: convertKelvinToCelsius(max)
     };
+}
+
+// Converts the temperature from Kelvin to Celsius
+function convertKelvinToCelsius(kelvin) {
+    if (kelvin < (0)) {
+        return 'below absolute zero (0 K)';
+    } else {
+        let celciusVal = kelvin - 273.15
+        return Math.round(celciusVal * 100) / 100;
+    }
 }
 
 // Returns the sum of an array of values
 function getSum(array) {
-    var total = 0;
 
-    for (var i = 0; i < array.length; i++) {
+    if (array.length == 0)
+        return 0;
+
+    let total = 0;
+
+    for (let i = 0; i < array.length; i++) {
         total += array[i];
     }
 
-    return total;
+    return Math.round(total * 100) / 100;
 }
 
 // Returns the average value of an array of values
 function getAverage(array) {
-    var total = 0;
+    let total = 0;
 
-    for (var i = 0; i < array.length; i++) {
+    for (let i = 0; i < array.length; i++) {
         total += array[i];
     }
-    var avg = total / array.length;
+    let avg = total / array.length;
 
-    return avg;
-}
-
-function sendRandom(req, res) {
-    let min = parseInt(req.params.min);
-    let max = parseInt(req.params.max);
-
-    // Handle bad parameter request
-    if (isNaN(min) || isNaN(max)) {
-        res.status(400);
-        res.json({
-            error: "Bad Request!"
-        });
-
-        return;
-    }
-
-    // Generate random numbers
-    console.log(`Generating random number between ${min} & ${max}...`);
-    let result = Math.round((Math.random() * (max - min) + min));
-    console.log(`Random number generated ${result}`);
-
-    // Send good response with result
-    res.status(200);
-    res.json({
-        result: result
-    });
-
-    return;
+    return Math.round(avg * 100) / 100;
 }

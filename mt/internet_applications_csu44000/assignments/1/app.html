@@ -1,8 +1,21 @@
+<!-- Import Bootstrap Library -->
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+
 <!-- Import Vue.js distribution -->
 <script src="https://npmcdn.com/vue/dist/vue.js"></script>
 
 <!-- HTML code using Vue.js components -->
-<div id="app">
+<div id="app" class="ml-2">
     <h1>Welcome to the Magic Weather Predictor</h1>
 
     Please enter the town you are seeking the forecast of:
@@ -16,6 +29,7 @@
     <br />
     <br />
 
+    <!-- Town Text Input -->
     Town: <input v-model="town">
 
     <br />
@@ -26,7 +40,49 @@
     <br />
     <br />
 
-    The forecast is: {{forecastJson}}
+    <!-- Rain Packing Tips -->
+    <div v-if="!isError && isRain != null">
+        <p>
+            <b>Rain:</b> 
+                <span v-if="isRain">There is rain forecast during these dates. You should pack an umberella.</span>
+                <span v-if="!isRain">There is no rain forecast during these dates. No need to pack an umberella!.</span>
+        </p>
+    </div>
+
+    <!-- Weather Sentiment Packing Tips -->
+    <div v-if="!isError && temperatureSummary != null">
+        <p>
+            <b>Packing:</b> 
+                <span v-if="temperatureSummary.sentiment == 'hot'">Temperature range is >20°C. You should pack light clothes as to keep cool.</span>
+                <span v-if="temperatureSummary.sentiment == 'warm'">Temperature range is between {{temperatureSummary.max}}°C and {{temperatureSummary.min}}°C. You should pack both light clothes with some extra layers for when it gets colder.</span>
+                <span v-if="temperatureSummary.sentiment == 'cold'">Temperature range is between {{temperatureSummary.max}}°C and {{temperatureSummary.min}}°C. You should pack warm clothes with plenty of insulation to keep warm.</span>
+        </p>
+    </div>
+
+    <table v-if="forecastJson" class="table table-dark w-75">
+        <thead>
+            <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Avg Temperature (°C)</th>
+                <th scope="col">Avg Wind Speed (m/s)</th>
+                <th scope="col">Rainfall Level (mm)</th>
+                <th scope="col">Min Temperature (°C)</th>
+                <th scope="col">Max Temperature (°C)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <template v-for="(dateEntry, date) in forecastJson">
+                <tr>
+                    <th scope="row">{{ date }}</th>
+                    <td>{{ dateEntry.averageTemp }}</td>
+                    <td>{{ dateEntry.averageWind }}</td>
+                    <td>{{ dateEntry.rainfallLevels }}</td>
+                    <td>{{ dateEntry.temperatureRange.min }}</td>
+                    <td>{{ dateEntry.temperatureRange.max }}</td>
+                </tr>
+            </template>
+        </tbody>
+    </table>
 </div>
 
 <!-- Vue.js Components -->
@@ -37,7 +93,9 @@
             town: '',
             isError: false,
             errorMessage: '',
-            forecastJson: {},
+            forecastJson: null,
+            isRain: null,
+            temperatureSummary: null,
             townSearchHistory: []
         },
         methods: {
@@ -58,7 +116,10 @@
                 return response.json();
             })
             .then(responseJSON => {
-                this.forecastJson = responseJSON.result;
+                console.log(responseJSON);
+                this.forecastJson = responseJSON.forecastSummary;
+                this.temperatureSummary = responseJSON.temperatureSummary;
+                this.isRain = responseJSON.isRain;
 
                 // Reset any errors
                 this.isError = false;
