@@ -15,75 +15,85 @@
 <script src="https://npmcdn.com/vue/dist/vue.js"></script>
 
 <!-- HTML code using Vue.js components -->
-<div id="app" class="ml-2">
-    <h1>Welcome to the Magic Weather Predictor</h1>
+<html>
+    <head>
+        <title>CSU44000 - Weather Predictor</title>
+    </head>
+    <div id="app" class="ml-2">
+        <h1>Welcome to the Magic Weather Predictor</h1>
 
-    Please enter the town you are seeking the forecast of:
+        Please enter the town you are seeking the forecast of:
 
-    <span v-if="isError">
+        <span v-if="isError">
+            <br />
+            <br />
+            <font color="red">{{errorMessage}}</font>
+        </span>
+
         <br />
         <br />
-        <font color="red">{{errorMessage}}</font>
-    </span>
 
-    <br />
-    <br />
+        <!-- Town Text Input -->
+        Town: <input v-model="town">
 
-    <!-- Town Text Input -->
-    Town: <input v-model="town">
+        <br />
+        <br />
 
-    <br />
-    <br />
+        <button v-on:click="getWeatherForTown">Show me the weather!</button>
 
-    <button v-on:click="getWeatherForTown">Show me the weather!</button>
+        <br />
+        <br />
 
-    <br />
-    <br />
-
-    <!-- Rain Packing Tips -->
-    <div v-if="!isError && isRain != null">
-        <p>
-            <b>Rain:</b> 
+        <!-- Rain Packing Tips -->
+        <div v-if="!isError && isRain != null">
+            <p>
+                <b>Rain:</b>
                 <span v-if="isRain">There is rain forecast during these dates. You should pack an umberella.</span>
                 <span v-if="!isRain">There is no rain forecast during these dates. No need to pack an umberella!.</span>
-        </p>
-    </div>
+            </p>
+        </div>
 
-    <!-- Weather Sentiment Packing Tips -->
-    <div v-if="!isError && temperatureSummary != null">
-        <p>
-            <b>Packing:</b> 
-                <span v-if="temperatureSummary.sentiment == 'hot'">Temperature range is >20°C. You should pack light clothes as to keep cool.</span>
-                <span v-if="temperatureSummary.sentiment == 'warm'">Temperature range is between {{temperatureSummary.max}}°C and {{temperatureSummary.min}}°C. You should pack both light clothes with some extra layers for when it gets colder.</span>
-                <span v-if="temperatureSummary.sentiment == 'cold'">Temperature range is between {{temperatureSummary.max}}°C and {{temperatureSummary.min}}°C. You should pack warm clothes with plenty of insulation to keep warm.</span>
-        </p>
-    </div>
+        <!-- Weather Sentiment Packing Tips -->
+        <div v-if="!isError && temperatureSummary != null">
+            <p>
+                <b>Packing:</b>
+                <span v-if="temperatureSummary.sentiment == 'hot'">Temperature range is >20°C. You should pack light clothes
+                    as to keep cool.</span>
+                <span v-if="temperatureSummary.sentiment == 'warm'">Temperature range is between
+                    {{temperatureSummary.max}}°C and {{temperatureSummary.min}}°C. You should pack both light clothes with
+                    some extra layers for when it gets colder.</span>
+                <span v-if="temperatureSummary.sentiment == 'cold'">Temperature range is between
+                    {{temperatureSummary.max}}°C and {{temperatureSummary.min}}°C. You should pack warm clothes with plenty
+                    of insulation to keep warm.</span>
+            </p>
+        </div>
 
-    <table v-if="forecastJson" class="table table-dark w-75">
-        <thead>
-            <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Avg Temperature (°C)</th>
-                <th scope="col">Avg Wind Speed (m/s)</th>
-                <th scope="col">Rainfall Level (mm)</th>
-                <th scope="col">Min Temperature (°C)</th>
-                <th scope="col">Max Temperature (°C)</th>
-            </tr>
-        </thead>
-        <tbody>
-            <template v-for="(dateEntry, date) in forecastJson">
+        <table v-if="forecastJson" class="table table-dark w-75">
+            <thead>
                 <tr>
-                    <th scope="row">{{ date }}</th>
-                    <td>{{ dateEntry.averageTemp }}</td>
-                    <td>{{ dateEntry.averageWind }}</td>
-                    <td>{{ dateEntry.rainfallLevels }}</td>
-                    <td>{{ dateEntry.temperatureRange.min }}</td>
-                    <td>{{ dateEntry.temperatureRange.max }}</td>
+                    <th scope="col">Date</th>
+                    <th scope="col">Avg Temperature (°C)</th>
+                    <th scope="col">Avg Wind Speed (m/s)</th>
+                    <th scope="col">Rainfall Level (mm)</th>
+                    <th scope="col">Min Temperature (°C)</th>
+                    <th scope="col">Max Temperature (°C)</th>
                 </tr>
-            </template>
-        </tbody>
-    </table>
-</div>
+            </thead>
+            <tbody>
+                <template v-for="(dateEntry, date) in forecastJson">
+                    <tr>
+                        <th scope="row">{{ date }}</th>
+                        <td>{{ dateEntry.averageTemp }}</td>
+                        <td>{{ dateEntry.averageWind }}</td>
+                        <td>{{ dateEntry.rainfallLevels }}</td>
+                        <td>{{ dateEntry.temperatureRange.min }}</td>
+                        <td>{{ dateEntry.temperatureRange.max }}</td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+</html>
 
 <!-- Vue.js Components -->
 <script>
